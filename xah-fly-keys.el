@@ -4,6 +4,7 @@
 
 ;; Author: Xah Lee ( http://xahlee.info/ )
 ;; Version: 10.9.20190222215802
+;; Package-Version: 20190223.716
 ;; Created: 10 Sep 2013
 ;; Package-Requires: ((emacs "24.1"))
 ;; Keywords: convenience, emulations, vim, ergoemacs
@@ -1890,7 +1891,7 @@ Version 2015-11-06"
         ("◆" . "4" )
         ("¤" . "2" )
         ("…" . "...ellipsis" )
-        (" " . "nbsp" )
+        (" " . "nbsp" )
         ("、" . "," )
         ("⭑" . "9" )
         ("🎶" . "5" )
@@ -2272,7 +2273,7 @@ Version 2019-01-16"
                         (buffer-substring-no-properties (region-beginning) (region-end))
                       (let ($p0 $p1 $p2
                                 ;; chars that are likely to be delimiters of file path or url, e.g. whitespace, comma. The colon is a problem. cuz it's in url, but not in file name. Don't want to use just space as delimiter because path or url are often in brackets or quotes as in markdown or html
-                                ($pathStops "^  \t\n\"`'‘’“”|[]{}「」<>〔〕〈〉《》【】〖〗«»‹›❮❯❬❭〘〙·。\\"))
+                                ($pathStops "^  \t\n\"`'‘’“”|[]{}「」<>〔〕〈〉《》【】〖〗«»‹›❮❯❬❭〘〙·。\\"))
                         (setq $p0 (point))
                         (skip-chars-backward $pathStops)
                         (setq $p1 (point))
@@ -2704,17 +2705,23 @@ Version 2017-10-09"
       (start-process "" nil "x-terminal-emulator"
                      (concat "--working-directory=" default-directory))))))
 
+;;(defun xah-next-window-or-frame ()
+;;  "Switch to next window or frame.
+;;If current frame has only one window, switch to next frame.
+;;If `universal-argument' is called first, do switch frame.
+;;Version 2017-01-27"
+;;  (interactive)
+;;  (if current-prefix-arg
+;;      (other-frame 1)
+;;    (if (one-window-p)
+;;        (other-frame 1)
+;;      (other-window 1))))
+
 (defun xah-next-window-or-frame ()
-  "Switch to next window or frame.
-If current frame has only one window, switch to next frame.
-If `universal-argument' is called first, do switch frame.
-Version 2017-01-27"
   (interactive)
-  (if current-prefix-arg
-      (other-frame 1)
-    (if (one-window-p)
-        (other-frame 1)
-      (other-window 1))))
+  (ace-window())
+)
+
 
 (defun xah-unsplit-window-or-next-frame ()
   "Unsplit window. If current frame has only one window, switch to next frame.
@@ -3112,8 +3119,8 @@ Version 2019-02-12"
     (let (($result (assoc @charstr xah-fly--current-layout-kmap)))
       (if $result (cdr $result) @charstr ))))
 
-(defun xah-fly--define-keys (@keymap-name @key-cmd-alist)
-  "Map `define-key' over a alist @key-cmd-alist.
+(defun xah-fly--define-keys-for-local-keyboard-layout (@keymap-name @key-cmd-alist)
+  "Map `define-key' over a alist @key-cmd-alist, correcting for local keyboard layout.
 Example usage:
 ;; (xah-fly--define-keys
 ;;  (define-prefix-command 'xah-fly-dot-keymap)
@@ -3128,6 +3135,25 @@ Version 2019-02-12"
    (lambda ($pair)
      (define-key @keymap-name (kbd (xah-fly--key-char (car $pair))) (cdr $pair)))
    @key-cmd-alist))
+   
+(defun xah-fly--define-keys (@keymap-name @key-cmd-alist)
+  "Map `define-key' over a alist @key-cmd-alist. This is the naive version 
+   of the function, which preserves mnemonics irrespective of local keyboard layout. 
+Example usage:
+;; (xah-fly--define-keys
+;;  (define-prefix-command 'xah-fly-dot-keymap)
+;;  '(
+;;    (\"h\" . highlight-symbol-at-point)
+;;    (\".\" . isearch-forward-symbol-at-point)
+;;    (\"1\" . hi-lock-find-patterns)
+;;    (\"w\" . isearch-forward-word)))
+Version 2019-02-12"
+  (interactive)
+  (mapc
+   (lambda ($pair)
+     (define-key @keymap-name (kbd (car $pair)) (cdr $pair)))   
+    ;; (define-key @keymap-name (kbd (xah-fly--key-char (car $pair))) (cdr $pair)))
+   @key-cmd-alist))   
 
 
 ;; keymaps
@@ -3410,8 +3436,8 @@ Version 2019-02-12"
  '(
    ("t" . xref-find-definitions)
    ("n" . xref-pop-marker-stack)))
-
-(xah-fly--define-keys
+ 
+ (xah-fly--define-keys
  (define-prefix-command 'xah-fly-leader-key-map)
  '(
    ("SPC" . xah-fly-insert-mode-activate)
@@ -3468,7 +3494,11 @@ Version 2019-02-12"
    ;; z
    ;;
    ))
+ 
+ 
+	  
 
+   
 
 ;;;; misc
 
@@ -3721,76 +3751,77 @@ Version 2019-02-12"
   (interactive)
   (setq xah-fly-key--current-layout @layout)
   (load "xah-fly-keys"))
-
+  
 (defun xah-fly-command-mode-init ()
   "Set command mode keys.
 Version 2017-01-21"
   (interactive)
-  (xah-fly--define-keys
+  (xah-fly--define-keys-for-local-keyboard-layout
    xah-fly-key-map
    '(
-     ("~" . nil)
-     (":" . nil)
+;;     ("~" . nil)
+;;     (":" . nil)
 
-     ("SPC" . xah-fly-leader-key-map)
-     ("DEL" . xah-fly-leader-key-map)
+;;     ("SPC" . xah-fly-leader-key-map)
+;;     ("DEL" . xah-fly-leader-key-map)
 
-     ("'" . xah-reformat-lines)
-     ("," . xah-shrink-whitespaces)
-     ("-" . xah-cycle-hyphen-underscore-space)
-     ("." . xah-backward-kill-word)
-     (";" . xah-comment-dwim)
-     ("/" . hippie-expand)
-     ("\\" . nil)
-     ;; ("=" . xah-forward-equal-sign)
-     ("[" . xah-backward-punct )
-     ("]" . xah-forward-punct)
-     ("`" . other-frame)
+;;     ("'" . xah-reformat-lines)
+;;     ("," . xah-shrink-whitespaces)
+;;     ("-" . xah-cycle-hyphen-underscore-space)
+;;     ("." . xah-backward-kill-word)
+;;     (";" . xah-comment-dwim)
+;;     ("/" . hippie-expand)
+;;     ("\\" . nil)
+;;     ;; ("=" . xah-forward-equal-sign)
+;;     ("[" . xah-backward-punct )
+;;     ("]" . xah-forward-punct)
+;;     ("`" . other-frame)
 
-     ;; ("#" . xah-backward-quote)
-     ;; ("$" . xah-forward-punct)
+;;     ;; ("#" . xah-backward-quote)
+;;     ;; ("$" . xah-forward-punct)
 
-     ("1" . xah-extend-selection)
-     ("2" . xah-select-line)
-     ("3" . delete-other-windows)
-     ("4" . split-window-below)
-     ("5" . delete-char)
-     ("6" . xah-select-block)
-     ("7" . xah-select-line)
-     ("8" . xah-extend-selection)
-     ("9" . xah-select-text-in-quote)
-     ("0" . xah-pop-local-mark-ring)
+;;     ("1" . xah-extend-selection)
+;;     ("2" . xah-select-line)
+;;     ("3" . delete-other-windows)
+;;     ("4" . split-window-below)
+;;     ("5" . delete-char)
+;;     ("6" . xah-select-block)
+;;     ("7" . xah-select-line)
+;;     ("8" . xah-extend-selection)
+;;     ("9" . xah-select-text-in-quote)
+;;     ("0" . xah-pop-local-mark-ring)
 
-     ("a" . execute-extended-command)
-     ("b" . isearch-forward)
-     ("c" . previous-line)
-     ("d" . xah-beginning-of-line-or-block)
-     ("e" . xah-delete-backward-char-or-bracket-text)
-     ("f" . undo)
-     ("g" . backward-word)
-     ("h" . backward-char)
-     ("i" . xah-delete-current-text-block)
-     ("j" . xah-copy-line-or-region)
-     ("k" . xah-paste-or-paste-previous)
-     ;; ("l" . xah-fly-insert-mode-activate-space-before)
-     ("l" . xah-insert-space-before)
-     ("m" . xah-backward-left-bracket)
-     ("n" . forward-char)
-     ("o" . open-line)
-     ("p" . xah-kill-word)
-     ("q" . xah-cut-line-or-region)
-     ("r" . forward-word)
-     ("s" . xah-end-of-line-or-block)
-     ("t" . next-line)
-     ("u" . xah-fly-insert-mode-activate)
-     ("v" . xah-forward-right-bracket)
-     ("w" . xah-next-window-or-frame)
-     ("x" . xah-toggle-letter-case)
-     ("y" . set-mark-command)
-     ("z" . xah-goto-matching-bracket)))
+;;     ("a" . xah-fly-execute-extended-command)
+;;     ("b" . isearch-forward)
+;;     ("c" . previous-line)       
+;;     ("d" . xah-beginning-of-line-or-block)
+;;     ("e" . xah-delete-backward-char-or-bracket-text)
+;;     ("f" . undo)
+;;     ("g" . backward-word)
+;;     ("h" . backward-char)
+;;     ("i" . xah-delete-current-text-block)
+;;     ("j" . xah-copy-line-or-region)
+;;     ("k" . xah-paste-or-paste-previous)
+;;     ;; ("l" . xah-fly-insert-mode-activate-space-before)
+;;     ("l" . xah-insert-space-before)
+;;     ("m" . xah-backward-left-bracket)
+;;     ("n" . forward-char)
+;;     ("o" . open-line)
+;;     ("p" . xah-kill-word)
+;;     ("q" . xah-cut-line-or-region)
+;;     ("r" . forward-word)
+;;     ("s" . xah-end-of-line-or-block)
+;;     ("t" . next-line)
+;;     ("u" . xah-fly-insert-mode-activate)
+;;     ("v" . xah-forward-right-bracket)
+;;     ("w" . xah-next-window-or-frame)
+;;     ("x" . xah-toggle-letter-case)
+;;     ("y" . set-mark-command)
+;;     ("z" . xah-goto-matching-bracket)
+))
 
-  (define-key xah-fly-key-map (kbd (xah-fly--key-char "a"))
-    (if (fboundp 'smex) 'smex (if (fboundp 'helm-M-x) 'helm-M-x 'execute-extended-command)))
+;;  (define-key xah-fly-key-map (kbd (xah-fly--key-char "a"))
+;;    (if (fboundp 'smex) 'smex (if (fboundp 'helm-M-x) 'helm-M-x 'execute-extended-command)))
 
   ;; (when xah-fly-swapped-1-8-and-2-7-p
   ;;     (xah-fly--define-keys
@@ -3801,9 +3832,19 @@ Version 2017-01-21"
   ;;        ("2" . xah-select-line)
   ;;        ("1" . xah-extend-selection))))
 
+  (setq xah-fly-insert-state nil)
+  (setq xah-fly-command-state t)
+ 
   (progn
     (setq xah-fly-insert-state-q nil )
     (modify-all-frames-parameters (list (cons 'cursor-type 'box))))
+	
+	
+(progn
+ (set-face-background 'mode-line "red4")
+ (set-face-foreground 'mode-line "gray")
+ (set-face-background 'mode-line-inactive "gray30")
+  (set-face-foreground 'mode-line-inactive "red"))	
 
   (setq mode-line-front-space "C")
   (force-mode-line-update)
@@ -3811,6 +3852,9 @@ Version 2017-01-21"
   ;;
   )
 
+  
+
+  
 (defun xah-fly-space-key ()
   "switch to command mode if the char before cursor is a space.
 experimental
@@ -3826,74 +3870,84 @@ Version 2018-05-07"
   ;; (setq xah-fly-key-map (make-sparse-keymap))
   ;; (setq xah-fly-key-map (make-keymap))
 
-  (xah-fly--define-keys
+  (xah-fly--define-keys-for-local-keyboard-layout
    xah-fly-key-map
    '(
 
-     ("SPC" . nil)
-     ;; ("SPC" . xah-fly-space-key)
-     ("DEL" . nil)
+;;     ("SPC" . nil)
+;;     ;; ("SPC" . xah-fly-space-key)
+;;     ("DEL" . nil)
 
-     ("'" . nil)
-     ("," . nil)
-     ("-" . nil)
-     ("." . nil)
-     ("/" . nil)
-     (";" . nil)
-     ("=" . nil)
-     ("[" . nil)
-     ("\\" . nil)
-     ("]" . nil)
-     ("`" . nil)
-     ("~" . nil)
+;;     ("'" . nil)
+;;     ("," . nil)
+;;     ("-" . nil)
+;;     ("." . nil)
+;;     ("/" . nil)
+;;     (";" . nil)
+;;     ("=" . nil)
+;;     ("[" . nil)
+;;     ("\\" . nil)
+;;     ("]" . nil)
+;;     ("`" . nil)
+;;     ("~" . nil)
 
-     ;; ("#" . nil)
-     ;; ("$" . nil)
+;;     ;; ("#" . nil)
+;;     ;; ("$" . nil)
 
-     ("1" . nil)
-     ("2" . nil)
-     ("3" . nil)
-     ("4" . nil)
-     ("5" . nil)
-     ("6" . nil)
-     ("7" . nil)
-     ("8" . nil)
-     ("9" . nil)
-     ("0" . nil)
+;;     ("1" . nil)
+;;     ("2" . nil)
+;;     ("3" . nil)
+;;     ("4" . nil)
+;;     ("5" . nil)
+;;     ("6" . nil)
+;;     ("7" . nil)
+;;     ("8" . nil)
+;;     ("9" . nil)
+;;     ("0" . nil)
 
-     ("a" . nil)
-     ("b" . nil)
-     ("c" . nil)
-     ("d" . nil)
-     ("e" . nil)
-     ("f" . nil)
-     ("g" . nil)
-     ("h" . nil)
-     ("i" . nil)
-     ("j" . nil)
-     ("k" . nil)
-     ("l" . nil)
-     ("m" . nil)
-     ("n" . nil)
-     ("o" . nil)
-     ("p" . nil)
-     ("q" . nil)
-     ("r" . nil)
-     ("s" . nil)
-     ("t" . nil)
-     ("u" . nil)
-     ("v" . nil)
-     ("w" . nil)
-     ("x" . nil)
-     ("y" . nil)
-     ("z" . nil)
+;;     ("a" . nil)
+;;     ("b" . nil)
+;;     ("c" . nil)
+;;     ("d" . nil)
+;;     ("e" . nil)
+;;     ("f" . nil)
+;;     ("g" . nil)
+;;     ("h" . nil)
+;;     ("i" . nil)
+;;     ("j" . nil)
+;;     ("k" . nil)
+;;     ("l" . nil)
+;;     ("m" . nil)
+;;     ("n" . nil)
+;;     ("o" . nil)
+;;     ("p" . nil)
+;;     ("q" . nil)
+;;     ("r" . nil)
+;;     ("s" . nil)
+;;     ("t" . nil)
+;;     ("u" . nil)
+;;     ("v" . nil)
+;;     ("w" . nil)
+;;     ("x" . nil)
+;;     ("y" . nil)
+;;     ("z" . nil)
 
      ;;
      ))
 
+  (setq xah-fly-insert-state t)
+  (setq xah-fly-command-state nil)
+  
   (progn
     (setq xah-fly-insert-state-q t )
     (modify-all-frames-parameters (list (cons 'cursor-type 'bar))))
+	 
+(progn
+ (set-face-background 'mode-line-inactive "gray30")
+ (set-face-foreground 'mode-line-inactive "gray80")
+ (set-face-background 'mode-line "gray75")
+ (set-face-foreground 'mode-line "black"))
+		   
 
   (setq mode-line-front-space "I")
   (force-mode-line-update)
@@ -3964,6 +4018,171 @@ Version 2017-07-07"
 ;; (setq xah-fly-timer-id (run-with-idle-timer 20 t 'xah-fly-command-mode-activate))
 ;; (cancel-timer xah-fly-timer-id)
 
+
+(defvar xah-fly-manage-insert-mode-map  (make-sparse-keymap) "")  
+  
+(xah-fly--define-keys
+    xah-fly-manage-insert-mode-map  
+   '(
+
+     ("SPC" . nil)
+     ;; ("SPC" . xah-fly-space-key)
+     ("DEL" . nil)
+
+     ("'" . nil)
+     ("," . nil)
+     ("-" . nil)
+     ("." . nil)
+     ("/" . nil)
+     (";" . nil)
+     ("=" . nil)
+     ("[" . nil)
+     ("\\" . nil)
+     ("]" . nil)
+     ("`" . nil)
+     ("~" . nil)
+
+     ;; ("#" . nil)
+     ;; ("$" . nil)
+
+     ("1" . nil)
+     ("2" . nil)
+     ("3" . nil)
+     ("4" . nil)
+     ("5" . nil)
+     ("6" . nil)
+     ("7" . nil)
+     ("8" . nil)
+     ("9" . nil)
+     ("0" . nil)
+
+     ("a" . nil)
+     ("b" . nil)
+     ("c" . nil)
+     ("d" . nil)
+     ("e" . nil)
+     ("f" . nil)
+     ("g" . nil)
+     ("h" . nil)
+     ("i" . nil)
+     ("j" . nil)
+     ("k" . nil)
+     ("l" . nil)
+     ("m" . nil)
+     ("n" . nil)
+     ("o" . nil)
+     ("p" . nil)
+     ("q" . nil)
+     ("r" . nil)
+     ("s" . nil)
+     ("t" . nil)
+     ("u" . nil)
+     ("v" . nil)
+     ("w" . nil)
+     ("x" . nil)
+     ("y" . nil)
+     ("z" . nil)
+
+     ;;
+     ))
+
+;;(define-minor-mode xah-fly-insert-mode-experiment-D
+;;  "Get your foos in the right places"
+;;  :keymap xah-fly-manage-insert-mode-map) 
+
+  
+(defvar xah-fly-manage-command-mode-map  (make-sparse-keymap) "")  
+  
+(xah-fly--define-keys
+    xah-fly-manage-command-mode-map  
+   '(
+     ("~" . nil)
+     (":" . nil)
+
+     ("SPC" . xah-fly-leader-key-map)
+     ("DEL" . xah-fly-leader-key-map)
+
+     ("'" . xah-reformat-lines)
+     ("," . xah-shrink-whitespaces)
+     ("-" . xah-cycle-hyphen-underscore-space)
+     ("." . xah-backward-kill-word)
+     (";" . xah-comment-dwim)
+     ("/" . hippie-expand)
+     ("\\" . nil)
+     ;; ("=" . xah-forward-equal-sign)
+     ("[" . xah-backward-punct )
+     ("]" . xah-forward-punct)
+     ("`" . other-frame)
+
+     ;; ("#" . xah-backward-quote)
+     ;; ("$" . xah-forward-punct)
+
+     ("1" . xah-extend-selection)
+     ("2" . xah-select-line)
+     ("3" . delete-other-windows)
+     ("4" . split-window-below)
+     ("5" . delete-char)
+     ("6" . xah-select-block)
+     ("7" . xah-select-line)
+     ("8" . xah-extend-selection)
+     ("9" . xah-select-text-in-quote)
+     ("0" . xah-pop-local-mark-ring)
+
+     ("a" . execute-extended-command)
+     ("b" . isearch-forward)
+     ("c" . previous-line)
+     ("d" . xah-beginning-of-line-or-block)
+     ("e" . xah-delete-backward-char-or-bracket-text)
+     ("f" . undo)
+     ("g" . backward-word)
+     ("h" . backward-char)
+     ("i" . xah-delete-current-text-block)
+     ("j" . xah-copy-line-or-region)
+     ("k" . xah-paste-or-paste-previous)
+     ;; ("l" . xah-fly-insert-mode-activate-space-before)
+     ("l" . xah-insert-space-before)
+     ("m" . xah-backward-left-bracket)
+     ("n" . forward-char)
+     ("o" . open-line)
+     ("p" . xah-kill-word)
+     ("q" . xah-cut-line-or-region)
+     ("r" . forward-word)
+     ("s" . xah-end-of-line-or-block)
+	 ("t" . next-line)
+     ("u" . xah-fly-insert-mode-activate)
+     ("v" . xah-forward-right-bracket)
+     ("w" . xah-next-window-or-frame)
+     ("x" . xah-toggle-letter-case)
+     ("y" . set-mark-command)
+     ("z" . xah-goto-matching-bracket)))  
+  
+  
+  
+;;(define-minor-mode xah-fly-command-mode-experiment-D
+;;  "Get your foos in the right places"
+;;  :keymap xah-fly-manage-command-mode-map) 
+ 
+
+(defvar-local xah-fly-command-state nil)
+(defvar-local xah-fly-insert-state nil)
+ 
+(defvar xah-fly-mode-map-alist
+  (list
+   (cons 'xah-fly-command-state xah-fly-manage-command-mode-map)
+   (cons 'xah-fly-insert-state xah-fly-manage-insert-mode-map)))  
+   
+(defconst xah-fly--states
+  '(xah-fly-command-state
+    xah-fly-insert-state))   
+	
+  (setq emulation-mode-map-alists
+        (cons xah-fly-mode-map-alist emulation-mode-map-alists))	
+	
+  
+;;(defun xah-fly--switch-state (state)
+;;  "Switch xah-fly state to STATE.
+;;We also have to think about changing cursor type and so forth."  )
+  
 (define-minor-mode xah-fly-keys
   "A modal keybinding set, like vim, but based on ergonomic principles, like Dvorak layout.
 URL `http://ergoemacs.org/misc/ergoemacs_vi_mode.html'"
@@ -3977,10 +4196,27 @@ URL `http://ergoemacs.org/misc/ergoemacs_vi_mode.html'"
     ;; (add-hook 'shell-mode-hook 'xah-fly-insert-mode-activate)
     )
   (xah-fly-command-mode-activate)
-  ;; (add-to-list 'emulation-mode-map-alists (list (cons 'xah-fly-keys xah-fly-key-map )))
-  ;; (add-to-list 'emulation-mode-map-alists '((cons xah-fly-keys xah-fly-key-map )))
-  )
+   (add-to-list 'emulation-mode-map-alists (list (cons 'xah-fly-keys xah-fly-key-map )))
+   (add-to-list 'emulation-mode-map-alists '((cons xah-fly-keys xah-fly-key-map )))
+  
+  (mapc #'kill-local-variable
+          xah-fly-command-state
+          xah-fly-insert-state)
+ 
+)
 
+;;(defun xah-fly-modes-off ()
+;;  ""
+;;  (interactive)
+;;  (progn
+;;    (remove-hook 'minibuffer-setup-hook 'xah-fly-insert-mode-activate)
+;;    (remove-hook 'minibuffer-exit-hook 'xah-fly-command-mode-activate)
+;;    (remove-hook 'xah-fly-command-mode-activate-hook 'xah-fly-save-buffer-if-file)
+;;    (remove-hook 'shell-mode-hook 'xah-fly-insert-mode-activate))
+;;  (xah-fly-insert-mode-activate)
+;;  (xah-fly-insert-mode-experiment-D 0)
+;;  (xah-fly-command-mode-experiment-D 0))
+  
 (defun xah-fly-keys-off ()
   "Turn off xah-fly-keys minor mode."
   (interactive)
@@ -3992,6 +4228,13 @@ URL `http://ergoemacs.org/misc/ergoemacs_vi_mode.html'"
   (xah-fly-insert-mode-activate)
   (xah-fly-keys 0))
 
+
+  
+
+  
+  
 (provide 'xah-fly-keys)
+
+
 
 ;;; xah-fly-keys.el ends here
